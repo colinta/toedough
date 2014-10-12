@@ -19,7 +19,24 @@ function TodoItem(todo, options) {
   this.todo = todo;
 
   var done_content;
-  if ( todo.done ) {
+  var indent = '';
+  var numParents = todo.numParents();
+  for (; numParents; --numParents ) {
+    indent += '  ';
+  }
+
+  if ( todo.hasChildren() ) {
+    if ( todo.isDone() ) {
+      done_content = '{bold}(✓){/bold}';
+    }
+    else if ( todo.isExpanded() ) {
+      done_content = '{bold}( ){/bold}';
+    }
+    else {
+      done_content = '{bold}(+){/bold}';
+    }
+  }
+  else if ( todo.isDone() ) {
     done_content = '{bold}[✓]{/bold}';
   }
   else {
@@ -38,7 +55,7 @@ function TodoItem(todo, options) {
     }
     done_at_content += '{underline}Due: ' + todo.due_at.fromNow() + '{/underline}';
   }
-  options.content = '    ' + todo.title;
+  options.content = indent + '    ' + todo.title;
   Box.call(this, options);
 
   this.checkbox = new Box({
@@ -46,7 +63,7 @@ function TodoItem(todo, options) {
     content: done_content,
     align: 'left',
     top: 0,
-    left: 0,
+    left: indent.length,
     width: 4,
     transparent: true,
     // fg: function() { return self.style.fg(); },

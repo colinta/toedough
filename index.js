@@ -1,3 +1,6 @@
+// issues:
+// [ ] up/down/pageup/down don't scroll, but home/end DO.
+
 Array.prototype.insert = function (index, item) {
   this.splice(index, 0, item);
 };
@@ -9,8 +12,9 @@ var moment = require('moment');
 var TodoList = require('./blessed_todo_list').TodoList;
 
 var Todo = require('./models/todo');
+var User = require('./models/user');
 
-// Create a screen object.
+// Create a screen objeC-c.
 var screen = blessed.screen();
 
 var user_list = blessed.list({
@@ -34,7 +38,7 @@ var user_list = blessed.list({
 });
 screen.append(user_list);
 
-screen.append(new blessed.Text({
+screen.append(blessed.text({
   bg: 'black',
   content: ' ————— Online ————— '
 }));
@@ -60,26 +64,180 @@ var todo_list = new TodoList({
   // Allow key support (arrow keys + enter)
   keys: true
 });
-todo_list.append(new blessed.Text({ left: 2, content: ' Todo… ' }));
+todo_list.append(blessed.text({ left: 2, content: ' Todo… ' }));
 screen.append(todo_list);
 todo_list.focus();
 
-var details_box = blessed.box({
+var activity_box = blessed.box({
   left: 21,
   right: 0,
   top: '50%',
   bottom: 4,
   fg: '#ffffff',
   bg: 'default',
+  tags: true
+});
+
+var details_box = blessed.box({
+  left: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
   border: {
-    type: 'line',
+    type: 'double',
     fg: '#ffffff',
     bg: 'default'
   },
   tags: true
 });
-details_box.append(new blessed.Text({ left: 2, content: ' Details ' }));
-screen.append(details_box);
+
+var chat_box = blessed.box({
+  left: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  border: {
+    type: 'double',
+    fg: '#ffffff',
+    bg: 'default'
+  },
+  tags: true
+});
+
+var chat_prompt = blessed.text({
+  bottom: 1,
+  height: 1,
+  left: 1,
+  width: 1,
+  fg: '#fff',
+  bg: '#000',
+  content: '>'
+});
+
+var chat_input = blessed.textarea({
+  bottom: 1,
+  height: 1,
+  left: 2,
+  right: 2,
+  fg: '#fff',
+  bg: '#000',
+  inputOnFocus: true
+});
+chat_box.append(chat_prompt);
+chat_box.append(chat_input);
+
+todo_list.key([screen.tabc], function(ch, key) {
+  chat_input.focus();
+});
+
+chat_box.on('click', function(el, mouse) {
+  chat_input.focus();
+});
+
+chat_input.key(['enter'], function(ch, key) {
+  var text = chat_input.getValue().replace('\n', '');
+  chat_ref.push({ owner: my_id, text: text });
+  chat_input.setValue('');
+});
+
+chat_input.key(['C-c'], function(ch, key) {
+  return process.exit(0);
+});
+
+chat_input.key(['up'], function() {
+  chat_log.scroll(-1);
+  screen.render();
+});
+chat_input.key(['down'], function() {
+  chat_log.scroll(1);
+  screen.render();
+});
+chat_input.key(['pageup'], function() {
+  chat_log.scroll(-(chat_log.height / 2 | 0) || -1);
+  screen.render();
+});
+chat_input.key(['pagedown'], function() {
+  chat_log.scroll(chat_log.height / 2 | 0 || 1);
+  screen.render();
+});
+chat_input.key(['home'], function() {
+  chat_log.scroll(-chat_log._clines.length);
+  screen.render();
+});
+chat_input.key(['end'], function() {
+  chat_log.scroll(chat_log._clines.length);
+  screen.render();
+});
+
+var chat_log = blessed.scrollablebox({
+  left: 1,
+  top: 1,
+  right: 1,
+  bottom: 2,
+  tags: true,
+  mouse: true
+});
+chat_box.append(chat_log);
+
+var details_text = blessed.text({
+  left: 2,
+  content: ' Details ',
+  width: 9,
+  height: 1,
+  underline: true
+});
+var details_button = blessed.button({
+  left: 2,
+  content: ' Details ',
+  width: 9,
+  height: 1,
+  hoverBg: 'red'
+});
+
+var chat_text = blessed.text({
+  right: 2,
+  content: ' Chat ',
+  width: 6,
+  height: 1,
+  underline: true
+});
+var chat_button = blessed.button({
+  right: 2,
+  content: ' Chat ',
+  width: 6,
+  height: 1,
+  hoverBg: 'red'
+});
+
+details_button.on('click', function() {
+  activity_box.remove(chat_box);
+  activity_box.append(details_box);
+  todo_list.focus();
+  screen.render();
+});
+
+chat_button.on('click', function() {
+  activity_box.remove(details_box);
+  activity_box.append(chat_box);
+  chat_input.setValue();
+  chat_input.focus();
+  chat_input.readInput();
+  screen.render();
+
+  if ( chat_log.shouldScrollToBottom ) {
+    chat_log.scrollToBottom();
+    chat_log.shouldScrollToBottom = false;
+  }
+});
+
+details_box.append(details_text);
+details_box.append(chat_button);
+
+chat_box.append(chat_text);
+chat_box.append(details_button);
+
+activity_box.append(details_box);
+screen.append(activity_box);
 
 var login = blessed.box({
   fg: '#ffffff',
@@ -96,7 +254,7 @@ var login = blessed.box({
   top: 'center',
   left: 'center'
 });
-login.append(new blessed.Text({ left: 2, content: ' Logging in… ' }));
+login.append(blessed.text({ left: 2, content: ' Logging in… ' }));
 screen.append(login);
 
 var status_box = blessed.text({
@@ -105,12 +263,13 @@ var status_box = blessed.text({
   left: 0,
   width: '100%'
 });
-var status = new blessed.Text({ content: '---' });
+var status = blessed.text({ content: '---' });
 status_box.append(status);
 screen.append(status_box);
 
 function set_status(text) {
-  status.setText(text.toString());
+  status.setText(text.toString().replace('\n', '\\n'));
+  screen.render();
 }
 
 function toggle_login(visible) {
@@ -120,6 +279,7 @@ function toggle_login(visible) {
   else {
     screen.remove(login);
   }
+  screen.render();
 }
 
 // Quit on Escape, q, or Control-C.
@@ -131,16 +291,15 @@ screen.render();
 
 
 var app = require('./toedough');
-URL           = app.URL;
-connected_ref = app.connected_ref;
-firebase      = app.firebase;
-toedough      = app.toedough;
-online_ref    = app.online_ref;
-users_ref     = app.users_ref;
-todos_ref     = app.todos_ref;
-
-var my_id = process.env.my_id || '0';
-var users = {};
+var URL           = app.URL;
+var connected_ref = app.connected_ref;
+var firebase      = app.firebase;
+var toedough      = app.toedough;
+var online_ref    = app.online_ref;
+var chat_ref      = app.chat_ref;
+var users_ref     = app.users_ref;
+var todos_ref     = app.todos_ref;
+var my_id         = app.my_id;
 
 var my_presence_ref = online_ref.child(my_id)
 my_presence_ref.onDisconnect().remove();
@@ -149,15 +308,16 @@ connected_ref.on('value', function(connected) {
   toggle_login(!connected.val());
 
   if ( connected.val() ) {
-    set_status('Logged in at ' + new Date());
     my_presence_ref.set(true);
+    set_status('Logged in at ' + new Date());
   }
   else {
     set_status('Offline');
   }
 });
 
-function update_user_list(online_users) {
+var online_users = [];
+function update_user_list() {
   var selected_index = 0;
   var items = _(online_users).map(function(user, idx) {
     if ( user.id == my_id ) {
@@ -171,8 +331,11 @@ function update_user_list(online_users) {
 }
 
 var _todo_list_items;
+var _todo_top_items;
 function update_todo_list(todos) {
-  todos = todos || _todo_list_items || [];
+  todos = todos || _todo_top_items || [];
+  _todo_top_items = todos;
+
   var selected_id = null;
   var selected_todo = null;
 
@@ -180,64 +343,92 @@ function update_todo_list(todos) {
     selected_todo = _todo_list_items[todo_list.selected];
     selected_id = selected_todo && selected_todo.id;
   }
-  _todo_list_items = todos;
+
+  var open_todos = _(todos).chain()
+    .map(function(todo) {
+      if ( todo.isExpanded() ) {
+        return [todo].concat(todo.children);
+      }
+      else {
+        return [todo];
+      }
+    })
+    .flatten()
+    .value();
+  _todo_list_items = open_todos;
 
   var selected_index = 0;
-  _(todos).each(function(todo, idx) {
+  _(open_todos).each(function(todo, idx) {
     if ( selected_id && selected_id == todo.id ) {
       selected_index = idx;
       return;
     }
   });
 
-  todo_list.setItems(todos);
+  todo_list.setItems(open_todos);
   todo_list.select(selected_index);
   screen.render();
 };
 setInterval(update_todo_list, moment.duration(15, 'seconds').asMilliseconds());
 
 todo_list.on('select', function(__, idx) {
+  if ( ! _todo_list_items ) return;
+
   var todo = _todo_list_items[idx];
-  if ( todo ) {
+  if ( todo.isExpandable() ) {
+    todo.expand();
+    update_todo_list();
+  }
+  else if ( todo ) {
     todo.toggle();
   }
 });
 
-todo_list.on('change', function(__, idx) {
-  var todo = _todo_list_items[idx];
+function update_details() {
+  var todo = _todo_list_items[todo_list.selected];
   details_box.setContent(
     '{center}{underline}' + todo.title + '{/underline}{/center}\n' +
     '\n' +
-    'created: ' + (todo.created_at ? todo.created_at.fromNow() : 'unknown')
+    'created: ' + (todo.created_at ? todo.created_at.fromNow() : 'unknown') + '\n',
+    'by:      '
     );
-});
+  screen.render();
+}
+todo_list.on('change', update_details);
+
+var get_user = function(user_id) {
+  var user = User(user_id);
+  if ( ! user.name ) {
+    users_ref.child(user_id).once('value', function(user_snapshot) {
+      user.update(user_snapshot.val());
+
+      update_user_list();
+      update_chat(false);
+    });
+  }
+
+  return user;
+};
 
 online_ref.on('value', function(snapshot) {
   var user_ids = snapshot.val();
-  var online_users = [];
+  online_users = [];
 
-  _(user_ids).each(function(is_online, idx) {
+  _(user_ids).each(function(is_online, user_id) {
     if ( !is_online )  return true;
 
-    if ( !users[idx] ) {
-      users[idx] = {};
-      users_ref.child(idx).once('value', function(user_snapshot) {
-        users[idx].id = idx;
-        users[idx].name = user_snapshot.val().name;
-        update_user_list(online_users);
-      });
-    }
-    online_users.push(users[idx]);
+    var user = get_user(user_id);
+    online_users.push(user);
   });
 
-  update_user_list(online_users);
+  update_user_list();
 });
 
 
 var todos = [];
 
 function todo_from_snapshot(todo_snapshot) {
-  return new Todo(todo_snapshot.name(), todo_snapshot.val());
+  return Todo(todo_snapshot.name(), todo_snapshot.val());
 }
 
 todos_ref.on('child_removed', function(todo_snapshot){
@@ -246,12 +437,8 @@ todos_ref.on('child_removed', function(todo_snapshot){
 });
 
 todos_ref.on('child_changed', function(todo_snapshot){
-  _(todos).each(function(todo, idx) {
-    if ( todo.id == todo_snapshot.name() ) {
-      todos[idx] = todo_from_snapshot(todo_snapshot);
-    }
-  });
-  update_todo_list(todos);
+  var todo = todo_from_snapshot(todo_snapshot);
+  update_todo_list();
 });
 
 todos_ref.on('child_moved', function(todo_snapshot, prev_child_name){
@@ -278,3 +465,47 @@ todos_ref.on('child_added', function(todo_snapshot){
   todos.push(todo);
   update_todo_list(todos);
 });
+
+var chats = [];
+chat_ref.on('child_added', function(chat_snapshot){
+  chats.push(chat_snapshot.val());
+  update_chat();
+});
+
+function update_chat(scroll_to_bottom) {
+  scroll_to_bottom = scroll_to_bottom !== false;
+
+  chat_log.removeAll();
+  var y = 0;
+  var chat_content = '';
+  chats.forEach(function(chat) {
+    if ( chat_content ) {
+      chat_content += "\n";
+    }
+    var owner = get_user(chat.owner);
+    var username = owner && owner.name;
+    username = (username || '');
+    username += ':';
+
+    var username_len = 10;
+    while ( username.length < username_len ) {
+      username += ' ';
+    }
+
+    var chat_text = chat.text.replace(/(@\w+)\b/g, '{bold}$1{/bold}');
+    chat_content += '{bold}' + username.replace(':', ':{/bold}') + chat_text;
+  });
+  chat_log.setContent(chat_content);
+  screen.render();
+
+  if ( scroll_to_bottom ) {
+    if ( chat_log.detached ) {
+      chat_log.shouldScrollToBottom = true;
+    }
+    else {
+      chat_log.scrollToBottom();
+      screen.render();
+    }
+  }
+};
+update_chat = _(update_chat).throttle(250);
