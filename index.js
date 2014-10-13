@@ -286,9 +286,29 @@ var status = blessed.text({ content: '---' });
 status_box.append(status);
 screen.append(status_box);
 
+var _status_text = [];
+var status_timer = null;
+function _update_status() {
+  var text = _status_text.shift();
+  if ( text ) {
+    status.setText(text);
+    screen.render();
+    status_timer = setTimeout(_update_status, 3000);
+  }
+  else {
+    status.setText('');
+    screen.render();
+    status_timer = null;
+  }
+}
+
 function set_status(text) {
-  status.setText(text.toString().replace('\n', '\\n'));
-  screen.render();
+  text = text.toString().replace('\n', '\\n');
+
+  _status_text.push(text);
+  if ( ! status_timer ) {
+    _update_status();
+  }
 }
 
 function toggle_login(visible) {
@@ -499,7 +519,7 @@ var enable_notifications = _.throttle(function() {
   notifications_enabled = true;
 }, 250, {leading: false});
 
-chat_ref.on('child_added', function(chat_snapshot){
+chat_ref.on('child_added', function(chat_snapshot) {
   var chat = chat_snapshot.val();
   chats.push(chat);
   update_chat();
