@@ -14,7 +14,7 @@ var TodoList = require('./blessed_todo_list').TodoList;
 var Todo = require('./models/todo');
 var User = require('./models/user');
 
-// Create a screen objeC-c.
+// Create a screen object.
 var screen = blessed.screen();
 
 var user_list = blessed.list({
