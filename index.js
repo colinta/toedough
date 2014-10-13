@@ -8,6 +8,7 @@ Array.prototype.insert = function (index, item) {
 var blessed = require('blessed');
 var _ = require('underscore');
 var moment = require('moment');
+var notifier = require('node-notifier');
 
 var TodoList = require('./blessed_todo_list').TodoList;
 
@@ -222,6 +223,7 @@ var chat_button = blessed.button({
 });
 
 details_button.on('click', function() {
+  notifications_enabled = false;
   activity_box.remove(chat_box);
   activity_box.append(details_box);
   todo_list.focus();
@@ -229,6 +231,7 @@ details_button.on('click', function() {
 });
 
 chat_button.on('click', function() {
+  notifications_enabled = true;
   activity_box.remove(details_box);
   activity_box.append(chat_box);
   chat_input.setValue();
@@ -487,9 +490,19 @@ todos_ref.on('child_added', function(todo_snapshot){
 });
 
 var chats = [];
+notifications_enabled = false;
 chat_ref.on('child_added', function(chat_snapshot){
-  chats.push(chat_snapshot.val());
+  var chat = chat_snapshot.val();
+  chats.push(chat);
   update_chat();
+
+  if ( notifications_enabled && chat.owner != my_id ) {
+    owner = User(chat.owner);
+    notifier.notify({
+      'title': (owner ? owner.name : 'Someone') + ' said:',
+      'message': chat.text
+    });
+  }
 });
 
 function update_chat(scroll_to_bottom) {
