@@ -134,6 +134,16 @@ chat_box.on('click', function(el, mouse) {
   chat_input.focus();
 });
 
+chat_input.key(['C-u'], function(ch, key) {
+  if ( screen.program.toggleMouse() ) {
+    set_status('mouse enabled');
+  }
+  else {
+    set_status('mouse disabled');
+  }
+  return false;
+});
+
 chat_input.key(['enter'], function(ch, key) {
   var text = chat_input.getValue().replace('\n', '');
   if ( text ) {
@@ -284,6 +294,14 @@ function toggle_login(visible) {
   screen.render();
 }
 
+screen.key(['C-u'], function(ch, key) {
+  if ( screen.program.toggleMouse() ) {
+    set_status('mouse enabled');
+  }
+  else {
+    set_status('mouse disabled');
+  }
+});
 // Quit on Escape, q, or Control-C.
 screen.key(['escape', 'q', 'C-c'], function(ch, key) {
   return process.exit(0);
