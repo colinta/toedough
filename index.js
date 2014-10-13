@@ -495,7 +495,7 @@ function update_chat(scroll_to_bottom) {
     }
 
     var chat_text = chat.text.replace(/(@\w+)\b/g, '{bold}$1{/bold}');
-    chat_content += '{bold}' + username.replace(':', ':{/bold}') + chat_text;
+    chat_content += '{bold}' + username.replace(':', ':{/bold}') + chat_text + '{/}';
   });
   chat_log.setContent(chat_content);
   screen.render();
