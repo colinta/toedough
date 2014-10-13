@@ -136,8 +136,10 @@ chat_box.on('click', function(el, mouse) {
 
 chat_input.key(['enter'], function(ch, key) {
   var text = chat_input.getValue().replace('\n', '');
-  chat_ref.push({ owner: my_id, text: text });
-  chat_input.setValue('');
+  if ( text ) {
+    chat_ref.push({ owner: my_id, text: text });
+    chat_input.setValue('');
+  }
 });
 
 chat_input.key(['C-c'], function(ch, key) {
