@@ -223,6 +223,7 @@ var chat_button = blessed.button({
 });
 
 details_button.on('click', function() {
+  current_activity = 'details';
   notifications_enabled = false;
   activity_box.remove(chat_box);
   activity_box.append(details_box);
@@ -231,6 +232,7 @@ details_button.on('click', function() {
 });
 
 chat_button.on('click', function() {
+  current_activity = 'chat';
   notifications_enabled = true;
   activity_box.remove(details_box);
   activity_box.append(chat_box);
@@ -245,6 +247,8 @@ chat_button.on('click', function() {
   }
 });
 
+
+var current_activity = 'details';
 details_box.append(details_text);
 details_box.append(chat_button);
 
@@ -490,17 +494,27 @@ todos_ref.on('child_added', function(todo_snapshot){
 });
 
 var chats = [];
-notifications_enabled = false;
+var notifications_enabled = false;
+var enable_notifications = _.throttle(function() {
+  notifications_enabled = true;
+}, 250, {leading: false});
+
 chat_ref.on('child_added', function(chat_snapshot){
   var chat = chat_snapshot.val();
   chats.push(chat);
   update_chat();
+  enable_notifications();
 
   if ( notifications_enabled && chat.owner != my_id ) {
-    owner = User(chat.owner);
+    var owner = User(chat.owner);
+    var title = (owner ? owner.name : 'Someone') + ' said:';
+    var message = chat.text;
+    if ( current_activity != 'chat' ) {
+      set_status(title + ' ' + message);
+    }
     notifier.notify({
-      'title': (owner ? owner.name : 'Someone') + ' said:',
-      'message': chat.text
+      'title': title,
+      'message': message
     });
   }
 });
